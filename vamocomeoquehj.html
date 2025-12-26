@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vamo comê o que hj? 🍽️</title>
+
+<style>
+:root{
+  --bg:#f6f9ff;
+  --card:#ffffff;
+  --blue:#3b82f6;
+  --pink:#fb7185;
+  --text:#0f172a;
+  --muted:#64748b;
+  --border:#e5e7eb;
+}
+
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+  background:linear-gradient(180deg,#f8fbff,#eef4ff);
+  color:var(--text);
+}
+
+.wrap{
+  max-width:960px;
+  margin:auto;
+  padding:16px;
+}
+
+header{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:14px 16px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+header h1{
+  margin:0;
+  font-size:18px;
+}
+header p{
+  margin:4px 0 0;
+  font-size:12px;
+  color:var(--muted);
+  font-weight:600;
+}
+
+button{
+  border:1px solid var(--border);
+  background:#f8fafc;
+  padding:8px 14px;
+  border-radius:12px;
+  font-weight:700;
+  cursor:pointer;
+}
+button.primary{
+  background:#e8f0ff;
+  border-color:var(--blue);
+}
+
+.grid{
+  display:grid;
+  grid-template-columns: 420px 1fr;
+  gap:16px;
+  margin-top:16px;
+}
+@media(max-width:900px){
+  .grid{grid-template-columns:1fr}
+}
+
+.card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:16px;
+}
+
+.result{
+  border:2px dashed var(--blue);
+  background:#eef4ff;
+  border-radius:16px;
+  padding:16px;
+  margin-bottom:14px;
+  text-align:center;
+}
+.result b{
+  font-size:20px;
+  display:block;
+  margin-bottom:6px;
+}
+.result span{
+  font-size:16px;
+  font-weight:700;
+}
+
+canvas{
+  display:block;
+  margin:12px auto;
+  background:#ffffff;
+  border-radius:50%;
+  border:1px solid var(--border);
+}
+
+.pointer{
+  width:0;height:0;
+  margin:auto;
+  border-left:14px solid transparent;
+  border-right:14px solid transparent;
+  border-bottom:22px solid var(--text);
+}
+
+.row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+
+textarea{
+  width:100%;
+  min-height:90px;
+  border-radius:12px;
+  border:1px solid var(--border);
+  padding:10px;
+  font:inherit;
+}
+
+.small{
+  font-size:12px;
+  color:var(--muted);
+  font-weight:600;
+}
+
+.voteRow{
+  display:grid;
+  grid-template-columns:1fr auto auto auto;
+  gap:8px;
+  align-items:center;
+  padding:8px;
+  border:1px solid var(--border);
+  border-radius:12px;
+  margin-top:8px;
+}
+.voteRow button{padding:6px 8px}
+.on{background:#e0f2fe}
+</style>
+</head>
+
+<body>
+<div class="wrap">
+
+<header>
+  <div>
+    <h1>Vamo comê o que hj? 🍽️</h1>
+    <p>Decide rápido, sem briga (quase sempre)</p>
+  </div>
+  <button onclick="resetAll()">Resetar</button>
+</header>
+
+<div class="grid">
+
+<!-- ESQUERDA -->
+<div class="card">
+
+  <div class="result">
+    <b id="resTitle">Gira a roleta 😄</b>
+    <span id="resSub">a vida decide por você</span>
+  </div>
+
+  <div class="pointer"></div>
+  <canvas id="wheel" width="320" height="320"></canvas>
+
+  <div class="row">
+    <button class="primary" onclick="spin()">🎡 Girar roleta</button>
+  </div>
+
+  <hr>
+
+  <b class="small">Quem tá com fome?</b>
+  <textarea id="names">Ana
+João
+Dudu</textarea>
+
+</div>
+
+<!-- DIREITA -->
+<div class="card">
+
+  <b>Votação</b>
+  <p class="small">Todo mundo vota rapidinho</p>
+
+  <div id="votes"></div>
+
+  <div class="row" style="margin-top:12px;justify-content:flex-end">
+    <button onclick="clearVotes()">Limpar</button>
+    <button class="primary" onclick="finalize()">Fechar decisão</button>
+  </div>
+
+</div>
+
+</div>
+</div>
+
+<script>
+const wheel = document.getElementById("wheel");
+const ctx = wheel.getContext("2d");
+
+const options = [
+ "Churrasquinho na esquina 🔥",
+ "Panqueca em casa 🥞",
+ "Lanche + batata 🍔🍟",
+ "Arroz, feijão e ovo 🍳",
+ "Peixe + banana frita 🐟🍌",
+ "Pipoca vira jantar 🍿",
+ "Pedir pizza 🍕",
+ "Açaí 🥣",
+ "Ir no mercado passear 🛒",
+ "Bater palma no vizinho 👀",
+ "Cada um come o que quiser 😅",
+ "Jejum intermitente hoje 🙏",
+ "Treinou hoje? Então pode tudo 💪",
+ "Come leite condensado 🥫",
+ "Sorvete também é janta 🍨",
+ "Come doce e amanhã paga 💸",
+ "Hoje é dia de exagerar 😈",
+ "Nada. Fecha a boca e dorme 😴",
+ "Repete o que comeu ontem 🔁",
+ "Come qualquer coisa e segue a vida 🤷"
+];
+
+let angle = 0;
+let chosen = null;
+let votes = {};
+
+function draw(){
+  const n = options.length;
+  const step = Math.PI*2/n;
+  ctx.clearRect(0,0,320,320);
+  ctx.save();
+  ctx.translate(160,160);
+  ctx.rotate(angle);
+
+  for(let i=0;i<n;i++){
+    ctx.beginPath();
+    ctx.moveTo(0,0);
+    ctx.arc(0,0,150,i*step,(i+1)*step);
+    ctx.fillStyle = i%2 ? "#ffffff":"#eef4ff";
+    ctx.fill();
+    ctx.strokeStyle="#cbd5e1";
+    ctx.stroke();
+
+    ctx.save();
+    ctx.rotate(i*step+step/2);
+    ctx.textAlign="right";
+    ctx.font="600 9.5px system-ui";
+    ctx.fillStyle="#0f172a";
+    ctx.fillText(options[i].slice(0,20),140,4);
+    ctx.restore();
+  }
+  ctx.restore();
+}
+draw();
+
+function pick(){
+  const idx = Math.floor(((Math.PI*1.5-angle)%(Math.PI*2))/(Math.PI*2/options.length));
+  return options[(idx+options.length)%options.length];
+}
+
+function spin(){
+  let t=0,start=angle,target=angle+Math.PI*2*(4+Math.random()*2);
+  function anim(){
+    t+=0.02;
+    angle=start+(target-start)*(1-Math.pow(1-t,3));
+    draw();
+    if(t<1) requestAnimationFrame(anim);
+    else setResult(pick());
+  }
+  anim();
+}
+
+function setResult(opt){
+  chosen=opt;
+  document.getElementById("resTitle").innerText="🍽️ Hoje deu:";
+  document.getElementById("resSub").innerText=opt;
+  votes={};
+  renderVotes();
+}
+
+function renderVotes(){
+  const names=document.getElementById("names").value.split("\n").filter(Boolean);
+  const box=document.getElementById("votes");
+  box.innerHTML="";
+  names.forEach(n=>{
+    if(!votes[n]) votes[n]=null;
+    const row=document.createElement("div");
+    row.className="voteRow";
+    row.innerHTML=`
+      <b>${n}</b>
+      <button onclick="vote('${n}','ok')" class="${votes[n]==='ok'?'on':''}">👍</button>
+      <button onclick="vote('${n}','meh')" class="${votes[n]==='meh'?'on':''}">🤷</button>
+      <button onclick="vote('${n}','no')" class="${votes[n]==='no'?'on':''}">👎</button>
+    `;
+    box.appendChild(row);
+  });
+}
+
+function vote(n,v){
+  votes[n]=votes[n]===v?null:v;
+  renderVotes();
+}
+
+function clearVotes(){ votes={}; renderVotes(); }
+
+function finalize(){
+  if(!chosen) return alert("Gira a roleta primeiro 😄");
+  const vals=Object.values(votes);
+  const ok=vals.filter(v=>v==='ok').length;
+  const no=vals.filter(v=>v==='no').length;
+  alert(
+    ok>=no
+    ? "✅ Fechado! "+chosen
+    : "👎 Não rolou… gira de novo 😅"
+  );
+}
+
+function resetAll(){
+  angle=0;
+  chosen=null;
+  votes={};
+  draw();
+  document.getElementById("resTitle").innerText="Gira a roleta 😄";
+  document.getElementById("resSub").innerText="a vida decide por você";
+  document.getElementById("votes").innerHTML="";
+}
+</script>
+</body>
+</html>
